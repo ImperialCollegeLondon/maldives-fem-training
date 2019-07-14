@@ -1,0 +1,36 @@
+# DockerFile for a firedrake + jupyter container
+#
+# this is the same setup as dham's at github.com/dham/jhub-firedrake.git
+# but adds gmsh
+#
+# It is intended to be pushed as stephankramer/jhub-firedrake-gmsh
+
+# Use a jupyter notebook base image
+FROM firedrakeproject/firedrake
+
+# This DockerFile is looked after by
+MAINTAINER Stephan Kramer <s.kramer@imperial.ac.uk>
+
+USER firedrake
+
+WORKDIR /home/firedrake/firedrake/src/firedrake
+RUN bash -c "git fetch"
+RUN bash -c "git checkout jupyterhub"
+RUN bash -c ". /home/firedrake/firedrake/bin/activate && pip install -e . "
+
+
+WORKDIR /home/firedrake
+# Install an iPython kernel for firedrake
+RUN bash -c ". /home/firedrake/firedrake/bin/activate && pip install jupyterhub ipykernel notebook ipywidgets mpltools nbformat"
+RUN bash -c ". /home/firedrake/firedrake/bin/activate && jupyter nbextension enable --py widgetsnbextension --sys-prefix"
+RUN bash -c "rm firedrake-*"
+
+ENV OMPI_MCA_btl=tcp,self
+ENV PATH=/home/firedrake/firedrake/bin:$PATH
+
+USER root
+RUN apt-get update \
+    && apt -y install gmsh \
+    && rm -rf /var/lib/apt/lists/*
+USER firedrake
+
